@@ -7,18 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Loader2, QrCode, Store } from "lucide-react";
+import { Loader2, QrCode, Store, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function StoreSettings() {
   const { refresh } = useAuth();
-  const [form, setForm] = useState({ business_name: "", address: "", phone: "", qris_image_path: null });
+  const [form, setForm] = useState({ business_name: "", address: "", phone: "", qris_image_path: null, logo_image_path: null });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get("/umkm").then(({ data }) => {
-      setForm({ business_name: data.name || "", address: data.address || "", phone: data.phone || "", qris_image_path: data.qris_image_path || null });
+      setForm({ business_name: data.name || "", address: data.address || "", phone: data.phone || "", qris_image_path: data.qris_image_path || null, logo_image_path: data.logo_image_path || null });
       setLoading(false);
     });
   }, []);
@@ -45,6 +45,12 @@ export default function StoreSettings() {
           <div className="space-y-2"><Label>No. HP</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div className="space-y-2"><Label>Alamat</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
         </div>
+      </Card>
+
+      <Card className="rounded-2xl p-6 space-y-5 mt-6">
+        <div className="flex items-center gap-2 text-secondary"><ImageIcon className="h-5 w-5" /><h3 className="font-heading font-bold text-lg">Logo Toko</h3></div>
+        <p className="text-sm text-muted-foreground">Unggah logo toko Anda. Logo ini akan tampil di struk penjualan dan laporan keuangan, bersama logo aplikasi.</p>
+        <ImageUploader value={form.logo_image_path} onChange={(p) => setForm({ ...form, logo_image_path: p })} label="Unggah Logo Toko" testid="store-logo" />
       </Card>
 
       <Card className="rounded-2xl p-6 space-y-5 mt-6">

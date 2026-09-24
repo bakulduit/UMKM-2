@@ -1,4 +1,5 @@
 import { rupiah, shortDate } from "@/lib/format";
+import { api, fileUrl } from "@/lib/apiClient";
 
 export function buildReceiptText(txn, store) {
   if (!txn) return "";
@@ -35,6 +36,7 @@ export function buildReceiptHTML(txn, store) {
   if (!txn) return "";
   const origin = (typeof window !== "undefined" && window.location && window.location.origin) || "";
   const logo = origin + "/logo.png";
+  const storeLogo = store && store.logo_image_path ? fileUrl(store.logo_image_path) : null;
   const ref = txn.id ? String(txn.id).slice(0, 8).toUpperCase() : null;
   const rows = (txn.items || [])
     .map(
@@ -54,7 +56,7 @@ export function buildReceiptHTML(txn, store) {
     .tot{font-weight:bold;font-size:14px}
     .brand{color:#64748b;font-size:10px;margin-top:6px}
   </style></head><body>
-    <img class="logo" src="${logo}" alt="logo" onerror="this.style.display='none'" />
+    ${storeLogo ? `<img class="logo" src="${storeLogo}" alt="logo toko" onerror="this.style.display='none'" />` : ""}
     <h2>${store?.name || "Toko"}</h2>
     ${store?.address ? `<div class="c">${store.address}</div>` : ""}
     ${store?.phone ? `<div class="c">Telp: ${store.phone}</div>` : ""}
@@ -74,6 +76,7 @@ export function buildReceiptHTML(txn, store) {
     ${txn.is_credit ? `<div class="c">(KASBON / Belum Lunas)</div>` : ""}
     <hr>
     <div class="c">Terima kasih atas kunjungan Anda</div>
+    <div class="c" style="margin-top:6px"><img src="${logo}" alt="UMKM go digital" style="height:24px;width:auto" onerror="this.style.display='none'" /></div>
     <div class="c brand">Ditenagai oleh UMKM go digital</div>
   </body></html>`;
 }
@@ -95,4 +98,47 @@ export function whatsappUrl(txn, store, phone) {
   const p = (phone || "").replace(/[^0-9]/g, "");
   const num = p ? (p.startsWith("0") ? "62" + p.slice(1) : p) : "";
   return num ? `https://wa.me/${num}?text=${text}` : `https://wa.me/?text=${text}`;
+}
+
+// Fetch the server-generated PDF receipt and share it (with logo). On mobile this
+// opens the native share sheet so the user can pick WhatsApp and the PDF is attached.
+// On desktop / unsupported browsers it downloads the PDF and opens WhatsApp with text.
+export async function shareReceiptPdf(txn, store, customerPhone) {
+  if (!txn || !txn.id) return { ok: false };
+  let blob = null;
+  try {
+    const res = await api.get(`/transactions/${txn.id}/receipt`, { responseType: "blob" });
+    blob = res.data;
+  } catch (e) {
+    window.open(whatsappUrl(txn, store, customerPhone), "_blank");
+    return { ok: false, fallback: "text" };
+  }
+  const filename = `struk-${String(txn.id).slice(0, 8)}.pdf`;
+  const file = new File([blob], filename, { type: "application/pdf" });
+  const title = `Struk ${store?.name || "Toko"}`;
+  const shareText = buildReceiptText(txn, store);
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      await navigator.share({ files: [file], title, text: shareText });
+      return { ok: true, shared: true };
+    }
+  } catch (e) {
+    // user cancelled or share failed -> fall through to download fallback
+    if (e && e.name === "AbortError") return { ok: true, cancelled: true };
+  }
+  // Fallback: download the PDF then open WhatsApp with the text version
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (e) {
+    // ignore download errors
+  }
+  window.open(whatsappUrl(txn, store, customerPhone), "_blank");
+  return { ok: true, fallback: "download" };
 }

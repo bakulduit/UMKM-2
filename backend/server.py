@@ -233,6 +233,7 @@ class SubscribeInput(BaseModel):
 class UmkmProfileInput(BaseModel):
     business_name: Optional[str] = None
     qris_image_path: Optional[str] = None
+    logo_image_path: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
 
@@ -694,6 +695,114 @@ async def list_transactions(type: Optional[str] = None, limit: int = 100, user: 
     return await db.transactions.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
 
 
+@api_router.get("/transactions/{txn_id}/receipt")
+async def transaction_receipt(txn_id: str, authorization: str = Header(None), auth: str = Query(None)):
+    token = authorization[7:] if authorization and authorization.startswith("Bearer ") else auth
+    user = await user_from_token(token)
+    if user["role"] not in ("umkm_admin", "cashier"):
+        raise HTTPException(status_code=403, detail="Akses ditolak")
+    txn = await db.transactions.find_one({"id": txn_id, "umkm_id": user["umkm_id"]}, {"_id": 0})
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaksi tidak ditemukan")
+    umkm = await get_umkm(user["umkm_id"])
+
+    from reportlab.lib.pagesizes import A6
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm, mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+    from reportlab.platypus.flowables import HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from PIL import Image as PILImage
+
+    logo_path = ROOT_DIR / "assets" / "logo.png"
+    store_logo_bytes = None
+    slp = (umkm or {}).get("logo_image_path")
+    if slp:
+        try:
+            store_logo_bytes, _ = get_object(slp)
+        except Exception:
+            store_logo_bytes = None
+
+    def _rl_img(src, max_h_cm):
+        if isinstance(src, (bytes, bytearray)):
+            iw, ih = PILImage.open(io.BytesIO(src)).size
+            rli = RLImage(io.BytesIO(src))
+        else:
+            iw, ih = PILImage.open(str(src)).size
+            rli = RLImage(str(src))
+        h = max_h_cm * cm
+        rli.drawHeight = h
+        rli.drawWidth = h * (iw / ih if ih else 3.0)
+        rli.hAlign = "CENTER"
+        return rli
+
+    styles = getSampleStyleSheet()
+    ctr = ParagraphStyle("ctr", parent=styles["Normal"], alignment=TA_CENTER, fontSize=8, leading=11)
+    ctrb = ParagraphStyle("ctrb", parent=styles["Normal"], alignment=TA_CENTER, fontSize=12, leading=15, fontName="Helvetica-Bold")
+    lft = ParagraphStyle("lft", parent=styles["Normal"], alignment=TA_LEFT, fontSize=8, leading=11)
+    rgt = ParagraphStyle("rgt", parent=styles["Normal"], alignment=TA_RIGHT, fontSize=8, leading=11)
+    rgtb = ParagraphStyle("rgtb", parent=styles["Normal"], alignment=TA_RIGHT, fontSize=11, leading=14, fontName="Helvetica-Bold")
+    brand = ParagraphStyle("brand", parent=styles["Normal"], alignment=TA_CENTER, fontSize=7, textColor=colors.HexColor("#64748B"), leading=10)
+
+    def money(v):
+        return ("Rp {:,.0f}".format(float(v or 0))).replace(",", ".")
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A6, topMargin=8, bottomMargin=8, leftMargin=10, rightMargin=10)
+    E = []
+
+    def hr():
+        return HRFlowable(width="100%", thickness=0.5, color=colors.grey, dash=(2, 2))
+
+    if store_logo_bytes:
+        E.append(_rl_img(store_logo_bytes, 1.6))
+        E.append(Spacer(1, 4))
+    E.append(Paragraph((umkm.get("name") if umkm else None) or "Toko", ctrb))
+    if umkm and umkm.get("address"):
+        E.append(Paragraph(umkm["address"], ctr))
+    if umkm and umkm.get("phone"):
+        E.append(Paragraph("Telp: " + str(umkm["phone"]), ctr))
+    E.append(Spacer(1, 4)); E.append(hr()); E.append(Spacer(1, 4))
+    E.append(Paragraph(str(txn.get("created_at", ""))[:19].replace("T", " "), lft))
+    E.append(Paragraph("No: " + str(txn.get("id", ""))[:8].upper(), lft))
+    E.append(Paragraph("Kasir: " + (txn.get("cashier_name") or "-"), lft))
+    if txn.get("customer_name"):
+        E.append(Paragraph("Pelanggan: " + txn["customer_name"], lft))
+    E.append(Spacer(1, 4)); E.append(hr()); E.append(Spacer(1, 2))
+    rows = []
+    for it in txn.get("items", []):
+        desc = "{}<br/><font size=7 color='#666666'>{} x {}</font>".format(it.get("name", ""), it.get("qty"), money(it.get("price")))
+        rows.append([Paragraph(desc, lft), Paragraph(money(float(it.get("price", 0)) * float(it.get("qty", 0))), rgt)])
+    if rows:
+        t = Table(rows, colWidths=[None, 26 * mm])
+        t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 1),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 1), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                               ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+        E.append(t)
+    E.append(Spacer(1, 2)); E.append(hr()); E.append(Spacer(1, 2))
+    if txn.get("discount"):
+        E.append(Paragraph("Diskon: -" + money(txn["discount"]), rgt))
+    E.append(Paragraph("TOTAL: " + money(txn.get("total")), rgtb))
+    E.append(Paragraph("Bayar: " + str(txn.get("payment_method", "")).upper(), rgt))
+    if txn.get("payment_method") == "cash" and txn.get("amount_paid"):
+        E.append(Paragraph("Tunai: " + money(txn["amount_paid"]), rgt))
+        E.append(Paragraph("Kembali: " + money(max(0, float(txn["amount_paid"]) - float(txn.get("total") or 0))), rgt))
+    if txn.get("is_credit"):
+        E.append(Paragraph("(KASBON / Belum Lunas)", ctr))
+    E.append(Spacer(1, 4)); E.append(hr()); E.append(Spacer(1, 4))
+    E.append(Paragraph("Terima kasih atas kunjungan Anda", ctr))
+    if logo_path.exists():
+        E.append(Spacer(1, 4)); E.append(_rl_img(logo_path, 0.7))
+    E.append(Paragraph("Ditenagai oleh UMKM go digital", brand))
+    doc.build(E)
+    buf.seek(0)
+    ref = str(txn.get("id", ""))[:8]
+    return StreamingResponse(buf, media_type="application/pdf",
+                             headers={"Content-Disposition": f"inline; filename=struk-{ref}.pdf"})
+
+
+
 # ================= DASHBOARD =================
 def _match_outlet(item, outlet_id):
     if not outlet_id:
@@ -816,6 +925,13 @@ async def export_report(format: str = "excel", start: Optional[str] = None, end:
     generated = now_iso()[:19].replace("T", " ")
     income = sum(t["total"] for t in txns if t["type"] == "sale")
     expense = sum(t["total"] for t in txns if t["type"] == "expense")
+    store_logo_bytes = None
+    slp = (umkm or {}).get("logo_image_path")
+    if slp:
+        try:
+            store_logo_bytes, _ = get_object(slp)
+        except Exception:
+            store_logo_bytes = None
 
     if format == "pdf":
         from reportlab.lib.pagesizes import A4
@@ -823,13 +939,35 @@ async def export_report(format: str = "excel", start: Optional[str] = None, end:
         from reportlab.lib.units import cm
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from PIL import Image as PILImage
         buf = io.BytesIO()
         doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.2 * cm)
         styles = getSampleStyleSheet()
         small = ParagraphStyle("small", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#64748B"))
+
+        def _rl_img(src, max_h_cm):
+            if isinstance(src, (bytes, bytearray)):
+                iw, ih = PILImage.open(io.BytesIO(src)).size
+                rli = RLImage(io.BytesIO(src))
+            else:
+                iw, ih = PILImage.open(str(src)).size
+                rli = RLImage(str(src))
+            h = max_h_cm * cm
+            rli.drawHeight = h
+            rli.drawWidth = h * (iw / ih if ih else 3.0)
+            return rli
+
         elems = []
-        if logo_path.exists():
-            elems.append(RLImage(str(logo_path), width=4.6 * cm, height=1.48 * cm))
+        left = _rl_img(store_logo_bytes, 1.7) if store_logo_bytes else None
+        right = _rl_img(logo_path, 1.3) if logo_path.exists() else None
+        if left and right:
+            htbl = Table([[left, right]], colWidths=[9 * cm, 8 * cm])
+            htbl.setStyle(TableStyle([("ALIGN", (1, 0), (1, 0), "RIGHT"), ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                                      ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+            elems.append(htbl)
+            elems.append(Spacer(1, 8))
+        elif left or right:
+            elems.append(left or right)
             elems.append(Spacer(1, 6))
         elems.append(Paragraph("Laporan Keuangan", styles["Title"]))
         elems.append(Paragraph(f"<b>{bn}</b>", styles["Heading3"]))
@@ -863,14 +1001,28 @@ async def export_report(format: str = "excel", start: Optional[str] = None, end:
         ws = wb.active
         ws.title = "Laporan"
         rr = 1
+        anchored = False
+        if store_logo_bytes:
+            try:
+                from PIL import Image as PILImage
+                iw, ih = PILImage.open(io.BytesIO(store_logo_bytes)).size
+                simg = XLImage(io.BytesIO(store_logo_bytes))
+                simg.height = 64
+                simg.width = int(64 * (iw / ih)) if ih else 64
+                ws.add_image(simg, "A1")
+                anchored = True
+            except Exception:
+                pass
         if logo_path.exists():
             try:
-                img = XLImage(str(logo_path))
-                img.width, img.height = 200, 64
-                ws.add_image(img, "A1")
-                rr = 5
+                aimg = XLImage(str(logo_path))
+                aimg.width, aimg.height = 190, 61
+                ws.add_image(aimg, "F1" if anchored else "A1")
+                anchored = True
             except Exception:
-                rr = 1
+                pass
+        if anchored:
+            rr = 6
         ws.cell(row=rr, column=1, value="Laporan Keuangan").font = Font(bold=True, size=14); rr += 1
         ws.cell(row=rr, column=1, value=bn).font = Font(bold=True, size=12); rr += 1
         if addr:

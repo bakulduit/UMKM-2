@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiError } from "@/lib/apiClient";
 import { rupiah, shortDate } from "@/lib/format";
-import { printReceipt, whatsappUrl } from "@/lib/receipt";
+import { printReceipt, whatsappUrl, shareReceiptPdf } from "@/lib/receipt";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Loader2, ScrollText, ArrowDownCircle, ArrowUpCircle, Truck, Printer, Send } from "lucide-react";
+import { Minus, Loader2, ScrollText, ArrowDownCircle, ArrowUpCircle, Truck, Printer, Send, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export default function History() {
@@ -71,6 +71,7 @@ export default function History() {
                     {t.type === "sale" && (
                       <>
                         <Button size="icon" variant="ghost" title="Cetak struk" onClick={() => printReceipt(t, store)} data-testid={`print-${t.id}`}><Printer className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" title="Kirim struk PDF" onClick={() => shareReceiptPdf(t, store, null)} data-testid={`pdf-${t.id}`}><FileText className="h-4 w-4" /></Button>
                         <a href={whatsappUrl(t, store, null)} target="_blank" rel="noreferrer"><Button size="icon" variant="ghost" title="Kirim WhatsApp"><Send className="h-4 w-4" /></Button></a>
                       </>
                     )}

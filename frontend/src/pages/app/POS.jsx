@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiError } from "@/lib/apiClient";
 import { rupiah, playIncomingMoneySound } from "@/lib/format";
-import { printReceipt, whatsappUrl } from "@/lib/receipt";
+import { printReceipt, whatsappUrl, shareReceiptPdf } from "@/lib/receipt";
 import { useAuth } from "@/context/AuthContext";
 import AuthImage from "@/components/AuthImage";
 import OutletSelect from "@/components/OutletSelect";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-  Search, Plus, Minus, Trash2, ShoppingCart, Banknote, QrCode, Loader2, CheckCircle2, BellRing, PackageX, Printer, Send,
+  Search, Plus, Minus, Trash2, ShoppingCart, Banknote, QrCode, Loader2, CheckCircle2, BellRing, PackageX, Printer, Send, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -267,6 +267,7 @@ export default function POS() {
                 <Button variant="outline" className="w-full" data-testid="wa-receipt"><Send className="h-4 w-4 mr-2" /> WhatsApp</Button>
               </a>
             </div>
+            <Button variant="outline" className="w-full mt-2" onClick={() => lastTxn && shareReceiptPdf(lastTxn, umkm, null)} data-testid="pdf-receipt"><FileText className="h-4 w-4 mr-2" /> Kirim Struk PDF</Button>
             <Button className="w-full mt-2" onClick={() => setSuccessOpen(false)} data-testid="success-close">Transaksi Baru</Button>
           </div>
         </DialogContent>
