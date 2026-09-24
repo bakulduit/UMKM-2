@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Brand from "@/components/Brand";
+import SocialLinks from "@/components/SocialLinks";
 
 export default function Register() {
   const { login } = useAuth();
@@ -37,12 +38,15 @@ export default function Register() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between bg-secondary text-white p-12">
-        <Link to="/"><Brand /></Link>
+        <Link to="/"><Brand light /></Link>
         <div>
           <h2 className="font-heading text-4xl font-extrabold tracking-tight leading-tight">Mulai kelola usaha Anda hari ini.</h2>
           <p className="text-white/60 mt-4 max-w-md">Daftar gratis dan nikmati semua fitur selama 14 hari tanpa biaya.</p>
         </div>
-        <p className="text-white/40 text-sm">© {new Date().getFullYear()} UMKM Pay</p>
+        <div className="space-y-3">
+          <SocialLinks className="text-white/70" linkClass="hover:text-white" />
+          <p className="text-white/40 text-sm">© {new Date().getFullYear()} UMKM go digital</p>
+        </div>
       </div>
 
       <div className="flex items-center justify-center p-6 lg:p-12 bg-background">

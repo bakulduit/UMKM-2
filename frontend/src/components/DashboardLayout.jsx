@@ -57,7 +57,7 @@ export default function DashboardLayout() {
       >
         <div className="p-5 border-b border-white/10">
           <Link to="/" aria-label="Kembali ke beranda" className="inline-flex items-center">
-            <Brand imgClass="h-11" />
+            <Brand light imgClass="h-11" />
           </Link>
         </div>
 
