@@ -1,4 +1,4 @@
-export default function Brand({ className = "", imgClass = "h-14", light = false }) {
+export default function Brand({ className = "", imgClass = "h-9", light = false }) {
   return (
     <img
       src="/logo.png"

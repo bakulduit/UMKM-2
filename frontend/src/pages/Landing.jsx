@@ -10,11 +10,9 @@ import {
 const PAY = "https://images.pexels.com/photos/12935051/pexels-photo-12935051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
 const SLIDES = [
-  { url: "https://images.unsplash.com/photo-1510377971269-d723c13cc478?crop=entropy&cs=srgb&fm=jpg&q=85&w=940", cap: "Gerobak kaki lima" },
-  { url: "https://images.pexels.com/photos/36957559/pexels-photo-36957559.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", cap: "Pedagang jalanan Jakarta" },
-  { url: "https://images.unsplash.com/photo-1611854064186-d8dccbccb031?crop=entropy&cs=srgb&fm=jpg&q=85&w=940", cap: "Warung gerobak" },
-  { url: "https://images.pexels.com/photos/37234069/pexels-photo-37234069.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", cap: "Pasar tradisional" },
-  { url: "https://images.pexels.com/photos/7025416/pexels-photo-7025416.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", cap: "Kios serba ada" },
+  { url: "https://images.pexels.com/photos/33633752/pexels-photo-33633752.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Warung tradisional & pelanggan" },
+  { url: "https://images.pexels.com/photos/37651990/pexels-photo-37651990.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Kios jajanan UMKM" },
+  { url: "https://images.pexels.com/photos/18396499/pexels-photo-18396499.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Transaksi di lapak pasar" },
 ];
 
 const CARD_TONES = [
@@ -82,7 +80,7 @@ function HeroSlideshow() {
           <BellRing className="h-5 w-5" />
           <span className="font-heading font-bold">Uang Masuk!</span>
         </div>
-        <div className="text-2xl font-heading font-extrabold mt-1 tabular text-secondary">Rp 150.000</div>
+        <div className="text-2xl font-heading font-extrabold mt-1 tabular text-secondary">Rp 20.000</div>
         <div className="text-xs text-muted-foreground">via QRIS · barusan</div>
       </div>
     </div>
