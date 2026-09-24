@@ -10,9 +10,9 @@ import {
 const PAY = "https://images.pexels.com/photos/12935051/pexels-photo-12935051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
 const SLIDES = [
-  { url: "https://images.pexels.com/photos/33633752/pexels-photo-33633752.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Warung tradisional & pelanggan" },
-  { url: "https://images.pexels.com/photos/37651990/pexels-photo-37651990.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Kios jajanan UMKM" },
-  { url: "https://images.pexels.com/photos/18396499/pexels-photo-18396499.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Transaksi di lapak pasar" },
+  { url: "https://images.unsplash.com/photo-1762471712594-eadf362e7d0f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1000", cap: "Pemilik toko UMKM" },
+  { url: "https://images.pexels.com/photos/12495827/pexels-photo-12495827.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Toko kelontong & stok barang" },
+  { url: "https://images.unsplash.com/photo-1753351052363-53ce102830eb?crop=entropy&cs=srgb&fm=jpg&q=85&w=1000", cap: "Melayani pelanggan di toko" },
 ];
 
 const CARD_TONES = [
@@ -181,6 +181,15 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-6">
           <Logo />
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+            <a href="https://instagram.com/umkmgodigital" target="_blank" rel="noreferrer" data-testid="footer-ig"
+               className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-primary transition-colors">
+              <span className="h-9 w-9 rounded-full bg-pink-100 text-pink-600 grid place-items-center">
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm0 2A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4h-9zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.4-3.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z" />
+                </svg>
+              </span>
+              @UMKMgodigital
+            </a>
             <a href="https://wa.me/6282129078762" target="_blank" rel="noreferrer" data-testid="footer-wa"
                className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-primary transition-colors">
               <span className="h-9 w-9 rounded-full bg-green-100 text-green-600 grid place-items-center">

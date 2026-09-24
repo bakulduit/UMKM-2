@@ -8,7 +8,9 @@ export function buildReceiptText(txn, store) {
   if (store?.phone) lines.push(`Telp: ${store.phone}`);
   lines.push("--------------------------------");
   lines.push(shortDate(txn.created_at));
+  if (txn.id) lines.push(`No: ${String(txn.id).slice(0, 8).toUpperCase()}`);
   lines.push(`Kasir: ${txn.cashier_name || "-"}`);
+  if (txn.customer_name) lines.push(`Pelanggan: ${txn.customer_name}`);
   lines.push("--------------------------------");
   (txn.items || []).forEach((i) => {
     lines.push(`${i.name}`);
@@ -25,11 +27,15 @@ export function buildReceiptText(txn, store) {
   if (txn.is_credit) lines.push("(KASBON / Belum Lunas)");
   lines.push("--------------------------------");
   lines.push("Terima kasih atas kunjungan Anda 🙏");
+  lines.push("Ditenagai oleh UMKM go digital");
   return lines.join("\n");
 }
 
 export function buildReceiptHTML(txn, store) {
   if (!txn) return "";
+  const origin = (typeof window !== "undefined" && window.location && window.location.origin) || "";
+  const logo = origin + "/logo.png";
+  const ref = txn.id ? String(txn.id).slice(0, 8).toUpperCase() : null;
   const rows = (txn.items || [])
     .map(
       (i) => `<tr><td>${i.name}<div class="m">${i.qty} x ${rupiah(i.price)}</div></td><td class="r">${rupiah(i.price * i.qty)}</td></tr>`
@@ -40,18 +46,23 @@ export function buildReceiptHTML(txn, store) {
   <style>
     *{font-family:'Courier New',monospace;font-size:12px;color:#000}
     body{width:280px;margin:0 auto;padding:12px}
-    h2{text-align:center;margin:0 0 2px;font-size:15px}
+    h2{text-align:center;margin:6px 0 2px;font-size:15px}
     .c{text-align:center}.r{text-align:right}.m{color:#555;font-size:11px}
+    .logo{display:block;margin:0 auto 6px;max-height:44px;width:auto}
     hr{border:none;border-top:1px dashed #000;margin:8px 0}
     table{width:100%;border-collapse:collapse}td{padding:2px 0;vertical-align:top}
     .tot{font-weight:bold;font-size:14px}
+    .brand{color:#64748b;font-size:10px;margin-top:6px}
   </style></head><body>
+    <img class="logo" src="${logo}" alt="logo" onerror="this.style.display='none'" />
     <h2>${store?.name || "Toko"}</h2>
     ${store?.address ? `<div class="c">${store.address}</div>` : ""}
     ${store?.phone ? `<div class="c">Telp: ${store.phone}</div>` : ""}
     <hr>
     <div>${shortDate(txn.created_at)}</div>
+    ${ref ? `<div>No: ${ref}</div>` : ""}
     <div>Kasir: ${txn.cashier_name || "-"}</div>
+    ${txn.customer_name ? `<div>Pelanggan: ${txn.customer_name}</div>` : ""}
     <hr>
     <table>${rows}</table>
     <hr>
@@ -63,6 +74,7 @@ export function buildReceiptHTML(txn, store) {
     ${txn.is_credit ? `<div class="c">(KASBON / Belum Lunas)</div>` : ""}
     <hr>
     <div class="c">Terima kasih atas kunjungan Anda</div>
+    <div class="c brand">Ditenagai oleh UMKM go digital</div>
   </body></html>`;
 }
 

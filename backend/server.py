@@ -810,40 +810,90 @@ async def export_report(format: str = "excel", start: Optional[str] = None, end:
              "Metode": t.get("payment_method", "-"), "Kasir": t.get("cashier_name", "-"),
              "Status": t.get("status", "-"), "Jumlah": t["total"]} for t in txns]
 
+    logo_path = ROOT_DIR / "assets" / "logo.png"
+    addr = (umkm or {}).get("address") or ""
+    phone = (umkm or {}).get("phone") or ""
+    generated = now_iso()[:19].replace("T", " ")
+    income = sum(t["total"] for t in txns if t["type"] == "sale")
+    expense = sum(t["total"] for t in txns if t["type"] == "expense")
+
     if format == "pdf":
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm)
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.2 * cm)
         styles = getSampleStyleSheet()
-        elems = [Paragraph(f"Laporan Keuangan - {bn}", styles["Title"]),
-                 Paragraph(f"Periode: {start or 'Awal'} s/d {end or 'Sekarang'}", styles["Normal"]), Spacer(1, 12)]
-        income = sum(t["total"] for t in txns if t["type"] == "sale")
-        expense = sum(t["total"] for t in txns if t["type"] == "expense")
+        small = ParagraphStyle("small", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#64748B"))
+        elems = []
+        if logo_path.exists():
+            elems.append(RLImage(str(logo_path), width=4.6 * cm, height=1.48 * cm))
+            elems.append(Spacer(1, 6))
+        elems.append(Paragraph("Laporan Keuangan", styles["Title"]))
+        elems.append(Paragraph(f"<b>{bn}</b>", styles["Heading3"]))
+        if addr:
+            elems.append(Paragraph(addr, styles["Normal"]))
+        if phone:
+            elems.append(Paragraph(f"Telp: {phone}", styles["Normal"]))
+        elems.append(Paragraph(f"Periode: {start or 'Awal'} s/d {end or 'Sekarang'}", styles["Normal"]))
+        elems.append(Paragraph(f"Dicetak: {generated}", small))
+        elems.append(Spacer(1, 12))
         elems.append(Paragraph(f"Total Pemasukan: Rp {income:,.0f} | Total Pengeluaran: Rp {expense:,.0f} | Laba Bersih: Rp {income - expense:,.0f}", styles["Normal"]))
         elems.append(Spacer(1, 12))
-        data = [["Tanggal", "Tipe", "Keterangan", "Kasir", "Jumlah"]] + [[r["Tanggal"], r["Tipe"], r["Keterangan"][:30], r["Kasir"], f"Rp {r['Jumlah']:,.0f}"] for r in rows]
+        data = [["Tanggal", "Tipe", "Keterangan", "Metode", "Kasir", "Status", "Jumlah"]] + \
+               [[r["Tanggal"], r["Tipe"], r["Keterangan"][:26], r["Metode"], r["Kasir"], r["Status"], f"Rp {r['Jumlah']:,.0f}"] for r in rows]
         table = Table(data, repeatRows=1)
         table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F2811E")),
                                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                                    ("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                                    ("FONTSIZE", (0, 0), (-1, -1), 7.5), ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
                                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F1F5F9")])]))
         elems.append(table)
+        elems.append(Spacer(1, 16))
+        elems.append(Paragraph("Ditenagai oleh UMKM go digital - aplikasi keuangan &amp; kasir UMKM Indonesia", small))
         doc.build(elems)
         buf.seek(0)
         return StreamingResponse(buf, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=laporan-{bn}.pdf"})
     else:
         from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+        from openpyxl.drawing.image import Image as XLImage
         wb = Workbook()
         ws = wb.active
         ws.title = "Laporan"
+        rr = 1
+        if logo_path.exists():
+            try:
+                img = XLImage(str(logo_path))
+                img.width, img.height = 200, 64
+                ws.add_image(img, "A1")
+                rr = 5
+            except Exception:
+                rr = 1
+        ws.cell(row=rr, column=1, value="Laporan Keuangan").font = Font(bold=True, size=14); rr += 1
+        ws.cell(row=rr, column=1, value=bn).font = Font(bold=True, size=12); rr += 1
+        if addr:
+            ws.cell(row=rr, column=1, value=addr); rr += 1
+        if phone:
+            ws.cell(row=rr, column=1, value=f"Telp: {phone}"); rr += 1
+        ws.cell(row=rr, column=1, value=f"Periode: {start or 'Awal'} s/d {end or 'Sekarang'}"); rr += 1
+        ws.cell(row=rr, column=1, value=f"Dicetak: {generated}"); rr += 1
+        ws.cell(row=rr, column=1, value=f"Pemasukan: Rp {income:,.0f}   Pengeluaran: Rp {expense:,.0f}   Laba Bersih: Rp {income - expense:,.0f}").font = Font(bold=True); rr += 2
         headers = ["Tanggal", "Tipe", "Keterangan", "Metode", "Kasir", "Status", "Jumlah"]
-        ws.append(headers)
-        for r in rows:
-            ws.append([r[h] for h in headers])
+        for c, h in enumerate(headers, start=1):
+            cell = ws.cell(row=rr, column=c, value=h)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="F2811E")
+        rr += 1
+        for row in rows:
+            for c, h in enumerate(headers, start=1):
+                ws.cell(row=rr, column=c, value=row[h])
+            rr += 1
+        rr += 1
+        ws.cell(row=rr, column=1, value="Ditenagai oleh UMKM go digital").font = Font(italic=True, color="64748B")
+        for i, w in enumerate([20, 12, 32, 10, 16, 12, 14], start=1):
+            ws.column_dimensions[chr(64 + i)].width = w
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
