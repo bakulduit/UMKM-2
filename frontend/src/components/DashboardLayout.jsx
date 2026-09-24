@@ -56,7 +56,7 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="p-5 border-b border-white/10">
-          <Brand imgClass="h-8" />
+          <Brand imgClass="h-10" />
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
