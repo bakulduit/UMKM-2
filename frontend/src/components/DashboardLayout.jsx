@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import Brand from "@/components/Brand";
 import {
@@ -56,7 +56,9 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="p-5 border-b border-white/10">
-          <Brand imgClass="h-10" />
+          <Link to="/" aria-label="Kembali ke beranda" className="inline-flex items-center">
+            <Brand imgClass="h-11" />
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">

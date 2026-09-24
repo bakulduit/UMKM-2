@@ -40,7 +40,11 @@ const features = [
 ];
 
 function Logo() {
-  return <Brand />;
+  return (
+    <Link to="/" aria-label="Kembali ke beranda" className="inline-flex items-center">
+      <Brand />
+    </Link>
+  );
 }
 
 function HeroSlideshow() {
