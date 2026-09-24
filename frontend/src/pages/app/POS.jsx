@@ -263,11 +263,11 @@ export default function POS() {
             )}
             <div className="grid grid-cols-2 gap-2 mt-6">
               <Button variant="outline" onClick={() => lastTxn && printReceipt(lastTxn, umkm)} data-testid="print-receipt"><Printer className="h-4 w-4 mr-2" /> Cetak Struk</Button>
-              <a href={lastTxn ? whatsappUrl(lastTxn, umkm, null) : "#"} target="_blank" rel="noreferrer" className="w-full">
+              <a href={lastTxn ? whatsappUrl(lastTxn, umkm, lastTxn?.customer_phone) : "#"} target="_blank" rel="noreferrer" className="w-full">
                 <Button variant="outline" className="w-full" data-testid="wa-receipt"><Send className="h-4 w-4 mr-2" /> WhatsApp</Button>
               </a>
             </div>
-            <Button variant="outline" className="w-full mt-2" onClick={() => lastTxn && shareReceiptPdf(lastTxn, umkm, null)} data-testid="pdf-receipt"><FileText className="h-4 w-4 mr-2" /> Kirim Struk PDF</Button>
+            <Button variant="outline" className="w-full mt-2" onClick={() => lastTxn && shareReceiptPdf(lastTxn, umkm, lastTxn?.customer_phone)} data-testid="pdf-receipt"><FileText className="h-4 w-4 mr-2" /> Kirim Struk PDF</Button>
             <Button className="w-full mt-2" onClick={() => setSuccessOpen(false)} data-testid="success-close">Transaksi Baru</Button>
           </div>
         </DialogContent>

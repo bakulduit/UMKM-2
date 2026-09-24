@@ -12,6 +12,7 @@ export function buildReceiptText(txn, store) {
   if (txn.id) lines.push(`No: ${String(txn.id).slice(0, 8).toUpperCase()}`);
   lines.push(`Kasir: ${txn.cashier_name || "-"}`);
   if (txn.customer_name) lines.push(`Pelanggan: ${txn.customer_name}`);
+  if (txn.customer_phone) lines.push(`No. HP: ${txn.customer_phone}`);
   lines.push("--------------------------------");
   (txn.items || []).forEach((i) => {
     lines.push(`${i.name}`);
@@ -65,6 +66,7 @@ export function buildReceiptHTML(txn, store) {
     ${ref ? `<div>No: ${ref}</div>` : ""}
     <div>Kasir: ${txn.cashier_name || "-"}</div>
     ${txn.customer_name ? `<div>Pelanggan: ${txn.customer_name}</div>` : ""}
+    ${txn.customer_phone ? `<div>No. HP: ${txn.customer_phone}</div>` : ""}
     <hr>
     <table>${rows}</table>
     <hr>

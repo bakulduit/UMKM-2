@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Brand from "@/components/Brand";
@@ -9,11 +8,7 @@ import {
 
 const PAY = "https://images.pexels.com/photos/12935051/pexels-photo-12935051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
-const SLIDES = [
-  { url: "https://images.unsplash.com/photo-1762471712594-eadf362e7d0f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1000", cap: "Pemilik toko UMKM" },
-  { url: "https://images.pexels.com/photos/12495827/pexels-photo-12495827.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1000", cap: "Toko kelontong & stok barang" },
-  { url: "https://images.unsplash.com/photo-1753351052363-53ce102830eb?crop=entropy&cs=srgb&fm=jpg&q=85&w=1000", cap: "Melayani pelanggan di toko" },
-];
+const HERO_POSTER = "https://images.unsplash.com/photo-1762471712594-eadf362e7d0f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1000";
 
 const CARD_TONES = [
   "bg-orange-100 text-orange-600",
@@ -46,34 +41,20 @@ function Logo() {
 }
 
 function HeroSlideshow() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % SLIDES.length), 3500);
-    return () => clearInterval(t);
-  }, []);
   return (
     <div className="relative">
-      <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-1 aspect-[4/3]">
-        {SLIDES.map((s, idx) => (
-          <img
-            key={idx}
-            src={s.url}
-            alt={s.cap}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-            style={{ opacity: i === idx ? 1 : 0 }}
-          />
-        ))}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {SLIDES.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setI(idx)}
-              data-testid={`hero-slide-${idx}`}
-              className={`h-2 rounded-full transition-all duration-300 ${i === idx ? "w-6 bg-white" : "w-2 bg-white/60"}`}
-              aria-label={`Slide ${idx + 1}`}
-            />
-          ))}
-        </div>
+      <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-1 aspect-[4/3] bg-secondary">
+        <video
+          src="/hero.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          poster={HERO_POSTER}
+          className="absolute inset-0 w-full h-full object-cover"
+          data-testid="hero-video"
+        />
       </div>
       <div className="absolute -bottom-6 -left-4 bg-white rounded-2xl shadow-xl border p-4 w-56 -rotate-2 hidden sm:block z-10">
         <div className="flex items-center gap-2 text-primary">

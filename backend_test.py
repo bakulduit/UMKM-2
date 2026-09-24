@@ -574,6 +574,249 @@ def test_3_reports_export_excel():
         return False
 
 # ============================================================================
+# Test 4: Customer Phone in Sales & Receipt
+# ============================================================================
+
+def test_4_create_customer_with_phone():
+    """Test 4.1: Create a customer with phone number"""
+    global demo_token, test_customer_id
+    print_section("Test 4: Customer Phone in Sales & Receipt")
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        payload = {
+            "name": "Pak Budi",
+            "phone": "081298765432",
+            "note": "Test customer with phone"
+        }
+        
+        response = requests.post(f"{BASE_URL}/customers", json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            customer_id = data.get("id")
+            customer_phone = data.get("phone")
+            print_result("Create customer with phone", True, f"Customer ID: {customer_id}, Phone: {customer_phone}")
+            return customer_id
+        else:
+            print_result("Create customer with phone", False, f"Status: {response.status_code}, Body: {response.text}")
+            return None
+    except Exception as e:
+        print_result("Create customer with phone", False, f"Exception: {str(e)}")
+        return None
+
+def test_4_create_product_for_phone_test():
+    """Test 4.2: Create a product for phone test"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        payload = {
+            "name": "Kopi",
+            "price": 5000,
+            "cost": 3000,
+            "stock": 20
+        }
+        
+        response = requests.post(f"{BASE_URL}/products", json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            product_id = data.get("id")
+            print_result("Create product for phone test", True, f"Product ID: {product_id}")
+            return product_id
+        else:
+            print_result("Create product for phone test", False, f"Status: {response.status_code}, Body: {response.text}")
+            return None
+    except Exception as e:
+        print_result("Create product for phone test", False, f"Exception: {str(e)}")
+        return None
+
+def test_4_sale_with_customer_phone(customer_id, product_id):
+    """Test 4.3: Create sale with customer_id and verify customer_phone in response"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        payload = {
+            "items": [
+                {
+                    "product_id": product_id,
+                    "name": "Kopi",
+                    "price": 5000,
+                    "cost": 3000,
+                    "qty": 2
+                }
+            ],
+            "payment_method": "cash",
+            "amount_paid": 10000,
+            "customer_id": customer_id
+        }
+        
+        response = requests.post(f"{BASE_URL}/transactions/sale", json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            sale_id = data.get("id")
+            customer_phone = data.get("customer_phone")
+            customer_name = data.get("customer_name")
+            
+            # Verify customer_phone and customer_name are present
+            if customer_phone == "081298765432" and customer_name == "Pak Budi":
+                print_result("Sale with customer_phone in response", True, 
+                           f"Sale ID: {sale_id}, customer_phone: {customer_phone}, customer_name: {customer_name}")
+                return sale_id
+            else:
+                print_result("Sale with customer_phone in response", False, 
+                           f"Expected customer_phone='081298765432' and customer_name='Pak Budi', got customer_phone='{customer_phone}', customer_name='{customer_name}'")
+                return None
+        else:
+            print_result("Sale with customer_phone in response", False, f"Status: {response.status_code}, Body: {response.text}")
+            return None
+    except Exception as e:
+        print_result("Sale with customer_phone in response", False, f"Exception: {str(e)}")
+        return None
+
+def test_4_list_sales_includes_phone(sale_id):
+    """Test 4.4: GET /api/transactions?type=sale includes customer_phone"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        response = requests.get(f"{BASE_URL}/transactions?type=sale", headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Find the sale we just created
+            sale = next((s for s in data if s.get("id") == sale_id), None)
+            
+            if sale:
+                customer_phone = sale.get("customer_phone")
+                if customer_phone == "081298765432":
+                    print_result("List sales includes customer_phone", True, f"Found sale with customer_phone: {customer_phone}")
+                    return True
+                else:
+                    print_result("List sales includes customer_phone", False, 
+                               f"Expected customer_phone='081298765432', got '{customer_phone}'")
+                    return False
+            else:
+                print_result("List sales includes customer_phone", False, f"Sale ID {sale_id} not found in list")
+                return False
+        else:
+            print_result("List sales includes customer_phone", False, f"Status: {response.status_code}, Body: {response.text}")
+            return False
+    except Exception as e:
+        print_result("List sales includes customer_phone", False, f"Exception: {str(e)}")
+        return False
+
+def test_4_receipt_pdf_valid(sale_id):
+    """Test 4.5: GET receipt PDF returns valid PDF (should include customer No. HP)"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        response = requests.get(f"{BASE_URL}/transactions/{sale_id}/receipt", headers=headers)
+        
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+            pdf_content = response.content
+            
+            # Verify it's a PDF
+            is_pdf = pdf_content.startswith(b'%PDF')
+            is_correct_type = 'application/pdf' in content_type
+            is_non_trivial = len(pdf_content) > 5000  # > 5KB
+            
+            if is_pdf and is_correct_type and is_non_trivial:
+                print_result("Receipt PDF valid (with customer phone)", True, 
+                           f"Content-Type: {content_type}, Size: {len(pdf_content)} bytes, Valid PDF: {is_pdf}")
+                return True
+            else:
+                print_result("Receipt PDF valid (with customer phone)", False, 
+                           f"Content-Type: {content_type}, Size: {len(pdf_content)} bytes, Valid PDF: {is_pdf}, Non-trivial: {is_non_trivial}")
+                return False
+        else:
+            print_result("Receipt PDF valid (with customer phone)", False, f"Status: {response.status_code}, Body: {response.text[:200]}")
+            return False
+    except Exception as e:
+        print_result("Receipt PDF valid (with customer phone)", False, f"Exception: {str(e)}")
+        return False
+
+def test_4_sale_without_customer(product_id):
+    """Test 4.6: Create sale WITHOUT customer_id, verify customer_phone is null"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        payload = {
+            "items": [
+                {
+                    "product_id": product_id,
+                    "name": "Kopi",
+                    "price": 5000,
+                    "cost": 3000,
+                    "qty": 1
+                }
+            ],
+            "payment_method": "cash",
+            "amount_paid": 5000
+        }
+        
+        response = requests.post(f"{BASE_URL}/transactions/sale", json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            sale_id = data.get("id")
+            customer_phone = data.get("customer_phone")
+            
+            # Verify customer_phone is None/null
+            if customer_phone is None:
+                print_result("Sale without customer has null customer_phone", True, 
+                           f"Sale ID: {sale_id}, customer_phone: {customer_phone}")
+                return sale_id
+            else:
+                print_result("Sale without customer has null customer_phone", False, 
+                           f"Expected customer_phone=None, got '{customer_phone}'")
+                return None
+        else:
+            print_result("Sale without customer has null customer_phone", False, f"Status: {response.status_code}, Body: {response.text}")
+            return None
+    except Exception as e:
+        print_result("Sale without customer has null customer_phone", False, f"Exception: {str(e)}")
+        return None
+
+def test_4_receipt_without_customer(sale_id):
+    """Test 4.7: Receipt PDF for sale without customer still returns valid PDF"""
+    global demo_token
+    
+    try:
+        headers = {'Authorization': f'Bearer {demo_token}'}
+        response = requests.get(f"{BASE_URL}/transactions/{sale_id}/receipt", headers=headers)
+        
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+            pdf_content = response.content
+            
+            # Verify it's a PDF
+            is_pdf = pdf_content.startswith(b'%PDF')
+            is_correct_type = 'application/pdf' in content_type
+            is_non_trivial = len(pdf_content) > 5000  # > 5KB
+            
+            if is_pdf and is_correct_type and is_non_trivial:
+                print_result("Receipt PDF valid (without customer)", True, 
+                           f"Content-Type: {content_type}, Size: {len(pdf_content)} bytes")
+                return True
+            else:
+                print_result("Receipt PDF valid (without customer)", False, 
+                           f"Content-Type: {content_type}, Size: {len(pdf_content)} bytes, Valid PDF: {is_pdf}")
+                return False
+        else:
+            print_result("Receipt PDF valid (without customer)", False, f"Status: {response.status_code}")
+            return False
+    except Exception as e:
+        print_result("Receipt PDF valid (without customer)", False, f"Exception: {str(e)}")
+        return False
+
+# ============================================================================
 # Main Test Runner
 # ============================================================================
 
@@ -678,6 +921,59 @@ def run_all_tests():
                 results["passed"] += 1
             else:
                 results["failed"] += 1
+    
+    # Test 4: Customer Phone in Sales & Receipt
+    if demo_token:
+        customer_id = test_4_create_customer_with_phone()
+        results["total"] += 1
+        if customer_id:
+            results["passed"] += 1
+            
+            product_id = test_4_create_product_for_phone_test()
+            results["total"] += 1
+            if product_id:
+                results["passed"] += 1
+                
+                # Test sale with customer
+                sale_id = test_4_sale_with_customer_phone(customer_id, product_id)
+                results["total"] += 1
+                if sale_id:
+                    results["passed"] += 1
+                    
+                    # Test list sales includes phone
+                    results["total"] += 1
+                    if test_4_list_sales_includes_phone(sale_id):
+                        results["passed"] += 1
+                    else:
+                        results["failed"] += 1
+                    
+                    # Test receipt PDF
+                    results["total"] += 1
+                    if test_4_receipt_pdf_valid(sale_id):
+                        results["passed"] += 1
+                    else:
+                        results["failed"] += 1
+                else:
+                    results["failed"] += 1
+                
+                # Test sale without customer
+                sale_no_cust_id = test_4_sale_without_customer(product_id)
+                results["total"] += 1
+                if sale_no_cust_id:
+                    results["passed"] += 1
+                    
+                    # Test receipt for sale without customer
+                    results["total"] += 1
+                    if test_4_receipt_without_customer(sale_no_cust_id):
+                        results["passed"] += 1
+                    else:
+                        results["failed"] += 1
+                else:
+                    results["failed"] += 1
+            else:
+                results["failed"] += 1
+        else:
+            results["failed"] += 1
     
     # Print summary
     print_section("TEST SUMMARY")

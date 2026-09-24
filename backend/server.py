@@ -654,10 +654,12 @@ async def create_sale(data: SaleInput, user: dict = Depends(require_roles("umkm_
     total = round(subtotal + tax - data.discount, 2)
     cogs = sum(i.cost * i.qty for i in data.items)
     customer_name = None
+    customer_phone = None
     if data.customer_id:
         cust = await db.customers.find_one({"id": data.customer_id, "umkm_id": user["umkm_id"]})
         if cust:
             customer_name = cust["name"]
+            customer_phone = cust.get("phone") or None
             if data.is_credit:
                 await db.customers.update_one({"id": data.customer_id}, {"$inc": {"balance": total}})
     for i in data.items:
@@ -668,6 +670,7 @@ async def create_sale(data: SaleInput, user: dict = Depends(require_roles("umkm_
            "tax": tax, "discount": data.discount, "total": total, "cogs": cogs,
            "payment_method": data.payment_method, "status": "credit" if data.is_credit else "paid",
            "is_credit": data.is_credit, "customer_id": data.customer_id, "customer_name": customer_name,
+           "customer_phone": customer_phone,
            "amount_paid": data.amount_paid, "note": data.note, "created_at": now_iso()}
     await db.transactions.insert_one(doc)
     doc.pop("_id", None)
@@ -769,6 +772,8 @@ async def transaction_receipt(txn_id: str, authorization: str = Header(None), au
     E.append(Paragraph("Kasir: " + (txn.get("cashier_name") or "-"), lft))
     if txn.get("customer_name"):
         E.append(Paragraph("Pelanggan: " + txn["customer_name"], lft))
+    if txn.get("customer_phone"):
+        E.append(Paragraph("No. HP: " + str(txn["customer_phone"]), lft))
     E.append(Spacer(1, 4)); E.append(hr()); E.append(Spacer(1, 2))
     rows = []
     for it in txn.get("items", []):

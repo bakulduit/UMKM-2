@@ -71,8 +71,8 @@ export default function History() {
                     {t.type === "sale" && (
                       <>
                         <Button size="icon" variant="ghost" title="Cetak struk" onClick={() => printReceipt(t, store)} data-testid={`print-${t.id}`}><Printer className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" title="Kirim struk PDF" onClick={() => shareReceiptPdf(t, store, null)} data-testid={`pdf-${t.id}`}><FileText className="h-4 w-4" /></Button>
-                        <a href={whatsappUrl(t, store, null)} target="_blank" rel="noreferrer"><Button size="icon" variant="ghost" title="Kirim WhatsApp"><Send className="h-4 w-4" /></Button></a>
+                        <Button size="icon" variant="ghost" title="Kirim struk PDF" onClick={() => shareReceiptPdf(t, store, t.customer_phone)} data-testid={`pdf-${t.id}`}><FileText className="h-4 w-4" /></Button>
+                        <a href={whatsappUrl(t, store, t.customer_phone)} target="_blank" rel="noreferrer"><Button size="icon" variant="ghost" title="Kirim WhatsApp"><Send className="h-4 w-4" /></Button></a>
                       </>
                     )}
                   </TableCell>
